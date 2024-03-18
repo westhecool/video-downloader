@@ -5,6 +5,15 @@ puppeteer.use(StealthPlugin());
 const AdblockerPlugin = require('puppeteer-extra-plugin-adblocker');
 puppeteer.use(AdblockerPlugin({ blockTrackers: true }));
 const cp = require('child_process');
+const fs = require('fs');
+function is_file(file) {
+    try {
+        fs.accessSync(file, fs.F_OK);
+        return true;
+    } catch (err) {
+        return false;
+    }
+}
 function sanitizeFilename(filename) {
     // Windows filename restrictions:
     // Reserved characters: < > : " / \ | ? *
@@ -40,7 +49,11 @@ const start = async () => {
                 for (let key in interceptedRequest.headers()) {
                     headers += key + ': ' + interceptedRequest.headers()[key] + '\r\n';
                 }
-                const p = cp.spawn('ffmpeg', ['-loglevel', 'error', '-stats', '-protocol_whitelist', 'file,crypto,data,https,http,tls,tcp', '-headers', headers, '-i', interceptedRequest.url(), '-c:v', 'copy', '-c:a', 'copy', output_file, '-y'], { stdio: 'inherit' });
+                var ffmpeg = 'ffmpeg';
+                if (is_file('./ffmpeg.exe')) {
+                    ffmpeg = './ffmpeg.exe';
+                }
+                const p = cp.spawn(ffmpeg, ['-loglevel', 'error', '-stats', '-protocol_whitelist', 'file,crypto,data,https,http,tls,tcp', '-headers', headers, '-i', interceptedRequest.url(), '-c:v', 'copy', '-c:a', 'copy', output_file, '-y'], { stdio: 'inherit' });
                 p.on('exit', (code) => {
                     if (code !== 0) {
                         console.log('ffmpeg exited with code ' + code);
