@@ -72,6 +72,10 @@ const start = async () => {
     });
 }
 const binged_in = async () => {
+    if (url.includes("/info")) {
+        console.log('info url detected, replacing with streaming url...');
+        url = url.replace('/info', '/watch');
+    }
     const go = async () => {
         await page.goto(url);
         setTimeout(async () => {
