@@ -133,6 +133,10 @@ if (!url) {
 if (!output_file) {
     output_file = sanitizeFilename(url.replace('https://', '').replace('http://', '').replace(/\//g, '_')) + '.mp4';
 }
+if (is_file(output_file)) {
+    console.log('file ' + output_file + ' already exists!');
+    process.exit(1);
+}
 switch ((new URL(url)).host) {
     case 'embtaku.pro':
         start().then(() => {
