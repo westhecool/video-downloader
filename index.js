@@ -35,14 +35,15 @@ function sanitizeFilename(filename) {
 }
 var index_of_m3u8 = 1, pbrowser = null, page = null, got = false;
 const start = async () => {
-    pbrowser = await puppeteer.launch({ headless: true });
+    pbrowser = await puppeteer.launch({ headless: true, timeout: 0 });
     page = await pbrowser.newPage();
     await page.setRequestInterception(true);
     let i = 0;
-    page.on('request', interceptedRequest => {
+    page.on('request', async interceptedRequest => {
         if (interceptedRequest.url().includes('m3u8')) {
             i++;
             if (i == index_of_m3u8) {
+                await pbrowser.close();
                 console.log('got the m3u8 request!');
                 got = true;
                 headers = '';
@@ -65,7 +66,6 @@ const start = async () => {
                         process.exit(0);
                     }
                 });
-                pbrowser.close();
             }
         }
         interceptedRequest.continue();
@@ -89,12 +89,24 @@ const binged_in = async () => {
 }
 const embtaku_pro = async () => {
     await page.goto(url);
+    await page.evaluateOnNewDocument(() => {
+        window.open = (url) => {
+            console.log(`Blocked attempt to open new window: ${url}`);
+            return null;
+        };
+    });
     if (!url.includes('/streaming.php')) {
         console.log('attempting to get the streaming url...');
         const element = await page.$('iframe');
         url = await page.evaluate((element) => element.src, element);
         console.log('got the streaming url: ' + url);
         await page.goto(url);
+        await page.evaluateOnNewDocument(() => {
+            window.open = (url) => {
+                console.log(`Blocked attempt to open new window: ${url}`);
+                return null;
+            };
+        });
     }
     await page.waitForSelector('div[aria-label="Play"]');
     const element = await page.$('div[aria-label="Play"]');
@@ -105,7 +117,7 @@ const embtaku_pro = async () => {
             await page.mouse.move(boundingBox.x + boundingBox.width / 2, boundingBox.y + boundingBox.height / 2);
             await page.mouse.down();
             await page.mouse.up();
-        } catch (e) {}
+        } catch (e) { }
         setTimeout(async () => {
             if (!got) click();
         }, 500);
